@@ -35,7 +35,7 @@ function readTodos(username) {
   });
 }
 
-function writeTodos(data) {
+function writeData(data) {
   return new Promise((resolve, reject) => {
     fs.writeFile("./todos.json", data, (err) => {
       if (err) {
@@ -75,7 +75,7 @@ app.post("/signup", async function (req, res) {
 
   let jsondata = JSON.stringify(orgdata);
 
-  await writeTodos(jsondata);
+  await writeData(jsondata);
 
   res.json({
     msg: "you have signed up",
@@ -133,6 +133,23 @@ async function auth(req, res, next) {
 
 app.use(auth);
 
+// add todos
+app.post("/todos", async function (req, res) {
+  const username = req.username;
+  const todo = req.body.todo;
+
+  let data = await loadData();
+  const user = data.find((user) => username === user.username);
+  user.todos.push(todo);
+  const jsondata = JSON.stringify(data);
+
+  await writeData(jsondata);
+
+  res.json({
+    msg: "Todos added",
+  });
+});
+
 app.get("/todos", async function (req, res) {
   const username = req.username;
 
@@ -145,6 +162,7 @@ app.get("/todos", async function (req, res) {
 
 app.put("/update-todos", async function (req, res) {
   const username = req.username;
+  const updatedTsk = req.body;
 });
 
 app.delete("/delete-todo", async function (req, res) {
