@@ -1,7 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const fs = require("fs");
-const { json } = require("stream/consumers");
 const JWT_SECRET = "AyushLovesDevelopment";
 const app = express();
 
@@ -29,9 +28,8 @@ function readTodos(username) {
       } else {
         let data = JSON.parse(content);
         const usr = data.find((user) => username === user.username);
-        console.log(usr);
-        const usrdata = usr;
-        resolve(usr);
+        const usrdata = usr.todos;
+        resolve(usrdata);
       }
     });
   });
@@ -68,7 +66,7 @@ app.post("/signup", async function (req, res) {
   let data = {
     username: username,
     password: password,
-    todos: [{}],
+    todos: [],
   };
 
   let orgdata = await loadData();
@@ -100,6 +98,7 @@ app.post("/signin", async function (req, res) {
       },
       JWT_SECRET
     );
+    console.log(foundUser.username);
     res.json({
       token: token,
     });
@@ -114,15 +113,16 @@ app.post("/signin", async function (req, res) {
 async function auth(req, res, next) {
   const token = req.headers.token;
   const decodedInformation = jwt.verify(token, JWT_SECRET);
+  const username = decodedInformation.username;
 
-  const users = await readTodos();
+  const users = await loadData();
 
   const matchUser = users.find(
     (user) => decodedInformation.username === user.username
   );
 
   if (matchUser) {
-    req.username == matchUser.username;
+    req.username = matchUser.username;
     next();
   } else {
     res.json({
@@ -137,7 +137,10 @@ app.get("/todos", async function (req, res) {
   const username = req.username;
 
   const todos = await readTodos(username);
-  res.send(todos);
+
+  res.json({
+    todos: todos,
+  });
 });
 
 app.put("/update-todos", async function (req, res) {
