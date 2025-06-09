@@ -30,6 +30,10 @@ function writeTodos(data) {
   });
 }
 
+function updateTodo(oldTodo, newTodo) {}
+
+function deleteTodo(todo) {}
+
 app.use(express.json());
 
 app.get("/", function (req, res) {
@@ -68,8 +72,14 @@ app.post("/signin", async function (req, res) {
     (users) => username === users.username && password === users.password
   );
   if (foundUser) {
+    const token = jwt.sign(
+      {
+        username: foundUser.username,
+      },
+      JWT_SECRET
+    );
     res.json({
-      msg: "you are signed in",
+      token: token,
     });
   } else {
     res.json({
@@ -78,6 +88,43 @@ app.post("/signin", async function (req, res) {
   }
 });
 
-app.get("/todos", function (req, res) {});
+// single point authorization for getting todos, updating and deleting todos
+async function auth(req, res, next) {
+  const token = req.headers.token;
+  const decodedInformation = jwt.verify(token, JWT_SECRET);
 
-app.listen(3000);
+  const users = await readTodos();
+
+  const matchUser = users.find(
+    (user) => decodedInformation.username === user.username
+  );
+
+  if (matchUser) {
+    req.username == matchUser.username;
+    next();
+  } else {
+    res.json({
+      msg: "Invalid Credential",
+    });
+  }
+}
+
+app.use(auth);
+
+app.get("/todos", async function (req, res) {
+  const username = req.username;
+
+  const data = await readTodos();
+});
+
+app.put("/update-todos", async function (req, res) {
+  const username = req.username;
+});
+
+app.delete("/delete-todo", async function (req, res) {
+  const username = req.username;
+});
+
+app.listen(3000, () => {
+  console.log(`Server Live on port ${3000}`);
+});
