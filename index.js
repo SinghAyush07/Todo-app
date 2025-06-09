@@ -5,7 +5,9 @@ const { json } = require("stream/consumers");
 const JWT_SECRET = "AyushLovesDevelopment";
 const app = express();
 
-function readTodos() {
+// will load whole todos.json to put a new user in the todos.json file
+// this function is only used for signup and signin end point
+function loadData() {
   return new Promise((resolve) => {
     fs.readFile("./todos.json", "utf-8", (err, content) => {
       if (err) {
@@ -13,6 +15,23 @@ function readTodos() {
       } else {
         let data = JSON.parse(content);
         resolve(data);
+      }
+    });
+  });
+}
+
+// will only load the todos of a user that is currently signed in
+function readTodos(username) {
+  return new Promise((resolve) => {
+    fs.readFile("./todos.json", "utf-8", (err, content) => {
+      if (err) {
+        console.log(err);
+      } else {
+        let data = JSON.parse(content);
+        const usr = data.find((user) => username === user.username);
+        console.log(usr);
+        const usrdata = usr;
+        resolve(usr);
       }
     });
   });
@@ -30,9 +49,11 @@ function writeTodos(data) {
   });
 }
 
-function updateTodo(oldTodo, newTodo) {}
+async function updateTodo(username, oldTodo, newTodo) {
+  let data = await readTodos();
+}
 
-function deleteTodo(todo) {}
+async function deleteTodo(todo) {}
 
 app.use(express.json());
 
@@ -47,10 +68,11 @@ app.post("/signup", async function (req, res) {
   let data = {
     username: username,
     password: password,
-    todos: [],
+    todos: [{}],
   };
 
-  let orgdata = await readTodos();
+  let orgdata = await loadData();
+
   orgdata.push(data);
 
   let jsondata = JSON.stringify(orgdata);
@@ -66,7 +88,7 @@ app.post("/signin", async function (req, res) {
   const username = req.body.username;
   const password = req.body.password;
 
-  let users = await readTodos();
+  const users = await loadData();
 
   const foundUser = users.find(
     (users) => username === users.username && password === users.password
@@ -114,7 +136,8 @@ app.use(auth);
 app.get("/todos", async function (req, res) {
   const username = req.username;
 
-  const data = await readTodos();
+  const todos = await readTodos(username);
+  res.send(todos);
 });
 
 app.put("/update-todos", async function (req, res) {
