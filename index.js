@@ -91,7 +91,7 @@ app.post("/signin", async function (req, res) {
       },
       process.env.JWT_SECRET
     );
-    console.log(process.env.JWT_SECRET);
+
     res.json({
       token: token,
     });
