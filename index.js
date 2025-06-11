@@ -3,8 +3,7 @@
 const express = require("express");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
-const { setInterval } = require("timers/promises");
-const JWT_SECRET = "ThisISDev";
+require("dotenv").config();
 const app = express();
 
 // data loader
@@ -68,7 +67,7 @@ app.post("/signup", async function (req, res) {
       password: password,
       todos: [],
     });
-    await writeData();
+    await writeFilePromisified(data);
     res.json({
       msg: "You are signed up",
     });
@@ -90,9 +89,9 @@ app.post("/signin", async function (req, res) {
       {
         username: username,
       },
-      JWT_SECRET
+      process.env.JWT_SECRET
     );
-
+    console.log(process.env.JWT_SECRET);
     res.json({
       token: token,
     });
@@ -103,17 +102,22 @@ app.post("/signin", async function (req, res) {
 
 //Authorization of token
 async function auth(req, res, next) {
-  const token = req.headers.token;
-  const decodedInformation = jwt.verify(token, JWT_SECRET);
-  await loadData();
+  try {
+    const token = req.headers.token;
 
-  const usr = data.find(
-    (data) => decodedInformation.username === data.username
-  );
-  if (usr) {
-    req.todos = usr.todos;
-    next();
-  } else {
+    const decodedInformation = jwt.verify(token, process.env.JWT_SECRET);
+    await loadData();
+
+    const usr = data.find(
+      (data) => decodedInformation.username === data.username
+    );
+
+    if (usr) {
+      req.todos = usr.todos;
+      next();
+    }
+  } catch (err) {
+    console.log(err);
     res.json({
       msg: "Invalid login",
     });
@@ -136,7 +140,7 @@ app.post("/todo", async function (req, res) {
   const todos = req.todos;
 
   const todochk = todos.find((tod) => tod === todo);
-  console.log(todochk);
+
   if (todochk) {
     res.json({
       msg: "todo is already present",
