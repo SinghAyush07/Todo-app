@@ -125,9 +125,19 @@ app.use(auth);
 // Gets all the todos based on user
 app.get("/todos", async function (req, res) {
   const todos = req.todos;
-  console.log(todos);
+
   res.json({
     todos: todos,
+  });
+});
+
+app.post("/todo", async function (req, res) {
+  const todo = req.body.todo;
+  const todos = req.todos;
+  todos.push(todo);
+  await writeFilePromisified(data);
+  res.json({
+    msg: "todo added",
   });
 });
 
@@ -137,7 +147,8 @@ app.delete("/delete/:id", async function (req, res) {
   const index = req.params.id;
 
   todos.splice(index - 1, 1);
-  console.log(todos);
+
+  await writeFilePromisified(data);
 
   res.json({
     msg: "done",
@@ -151,7 +162,9 @@ app.put("/update-todos", async function (req, res) {
   const updatedTodo = req.body.updatedTodo;
 
   todos[id - 1] = updatedTodo;
-  console.log(todos);
+
+  await writeFilePromisified(data);
+
   res.json({
     msg: "done",
   });
