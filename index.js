@@ -56,21 +56,22 @@ app.post("/signup", async function (req, res) {
     });
   } else {
     await loadData();
-    const existingUser = data.find((usr) => usr === username);
+    const existingUser = data.find((usr) => usr.username === username);
     if (existingUser) {
       res.json({
         msg: "Username Not Available",
       });
+    } else {
+      data.push({
+        username: username,
+        password: password,
+        todos: [],
+      });
+      await writeFilePromisified(data);
+      res.json({
+        msg: "You are signed up",
+      });
     }
-    data.push({
-      username: username,
-      password: password,
-      todos: [],
-    });
-    await writeFilePromisified(data);
-    res.json({
-      msg: "You are signed up",
-    });
   }
 });
 
