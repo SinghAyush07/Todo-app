@@ -134,11 +134,20 @@ app.get("/todos", async function (req, res) {
 app.post("/todo", async function (req, res) {
   const todo = req.body.todo;
   const todos = req.todos;
-  todos.push(todo);
-  await writeFilePromisified(data);
-  res.json({
-    msg: "todo added",
-  });
+
+  const todochk = todos.find((tod) => tod === todo);
+  console.log(todochk);
+  if (todochk) {
+    res.json({
+      msg: "todo is already present",
+    });
+  } else {
+    todos.push(todo);
+    await writeFilePromisified(data);
+    res.json({
+      msg: "todo added",
+    });
+  }
 });
 
 // Deletes todo based on id or index
