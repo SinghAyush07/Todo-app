@@ -1,12 +1,16 @@
+// todo backend
+
 const express = require("express");
-const jwt = require("jsonwebtoken");
 const fs = require("fs");
-const JWT_SECRET = "AyushLovesDevelopment";
+const jwt = require("jsonwebtoken");
+const { setInterval } = require("timers/promises");
+const JWT_SECRET = "ThisISDev";
 const app = express();
 
-// will load whole todos.json to put a new user in the todos.json file
-// this function is only used for signup and signin end point
-function loadData() {
+// data loader
+let data = [];
+
+function readFilePromisified() {
   return new Promise((resolve) => {
     fs.readFile("./todos.json", "utf-8", (err, content) => {
       if (err) {
@@ -19,39 +23,22 @@ function loadData() {
   });
 }
 
-// will only load the todos of a user that is currently signed in
-function readTodos(username) {
+async function loadData() {
+  data = await readFilePromisified();
+}
+
+function writeFilePromisified(data) {
   return new Promise((resolve) => {
-    fs.readFile("./todos.json", "utf-8", (err, content) => {
+    let jsonData = JSON.stringify(data, null, 2);
+    fs.writeFile("./todos.json", jsonData, (err) => {
       if (err) {
         console.log(err);
       } else {
-        let data = JSON.parse(content);
-        const usr = data.find((user) => username === user.username);
-        const usrdata = usr.todos;
-        resolve(usrdata);
+        resolve("File updated!");
       }
     });
   });
 }
-
-function writeData(data) {
-  return new Promise((resolve, reject) => {
-    fs.writeFile("./todos.json", data, (err) => {
-      if (err) {
-        console.log(err);
-      } else {
-        resolve("Todos updated!!");
-      }
-    });
-  });
-}
-
-async function updateTodo(username, oldTodo, newTodo) {
-  let data = await readTodos();
-}
-
-async function deleteTodo(todo) {}
 
 app.use(express.json());
 
@@ -59,116 +46,117 @@ app.get("/", function (req, res) {
   res.sendFile(__dirname + "/public/index.html");
 });
 
+// Signup route handler
 app.post("/signup", async function (req, res) {
   const username = req.body.username;
   const password = req.body.password;
 
-  let data = {
-    username: username,
-    password: password,
-    todos: [],
-  };
-
-  let orgdata = await loadData();
-
-  orgdata.push(data);
-
-  let jsondata = JSON.stringify(orgdata);
-
-  await writeData(jsondata);
-
-  res.json({
-    msg: "you have signed up",
-  });
-});
-
-app.post("/signin", async function (req, res) {
-  const username = req.body.username;
-  const password = req.body.password;
-
-  const users = await loadData();
-
-  const foundUser = users.find(
-    (users) => username === users.username && password === users.password
-  );
-  if (foundUser) {
-    const token = jwt.sign(
-      {
-        username: foundUser.username,
-      },
-      JWT_SECRET
-    );
-    console.log(foundUser.username);
+  if (username === password) {
     res.json({
-      token: token,
+      msg: "Enter different username",
     });
   } else {
+    await loadData();
+    const existingUser = data.find((usr) => usr === username);
+    if (existingUser) {
+      res.json({
+        msg: "Username Not Available",
+      });
+    }
+    data.push({
+      username: username,
+      password: password,
+      todos: [],
+    });
+    await writeData();
     res.json({
-      msg: "user not found",
+      msg: "You are signed up",
     });
   }
 });
 
-// single point authorization for getting todos, updating and deleting todos
+//Sign in end point -> Give token
+app.post("/signin", async function (req, res) {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  await loadData(); // loads all the data
+  const foundUser = data.find(
+    (usr) => usr.username === username && usr.password === password
+  );
+
+  if (foundUser) {
+    const token = jwt.sign(
+      {
+        username: username,
+      },
+      JWT_SECRET
+    );
+
+    res.json({
+      token: token,
+    });
+  } else {
+    res.send("Invalid Credentials");
+  }
+});
+
+//Authorization of token
 async function auth(req, res, next) {
   const token = req.headers.token;
   const decodedInformation = jwt.verify(token, JWT_SECRET);
-  const username = decodedInformation.username;
+  await loadData();
 
-  const users = await loadData();
-
-  const matchUser = users.find(
-    (user) => decodedInformation.username === user.username
+  const usr = data.find(
+    (data) => decodedInformation.username === data.username
   );
-
-  if (matchUser) {
-    req.username = matchUser.username;
+  if (usr) {
+    req.todos = usr.todos;
     next();
   } else {
     res.json({
-      msg: "Invalid Credential",
+      msg: "Invalid login",
     });
   }
 }
 
 app.use(auth);
 
-// add todos
-app.post("/todos", async function (req, res) {
-  const username = req.username;
-  const todo = req.body.todo;
-
-  let data = await loadData();
-  const user = data.find((user) => username === user.username);
-  user.todos.push(todo);
-  const jsondata = JSON.stringify(data);
-
-  await writeData(jsondata);
-
-  res.json({
-    msg: "Todos added",
-  });
-});
-
+// Gets all the todos based on user
 app.get("/todos", async function (req, res) {
-  const username = req.username;
-
-  const todos = await readTodos(username);
-
+  const todos = req.todos;
+  console.log(todos);
   res.json({
     todos: todos,
   });
 });
 
-app.put("/update-todos", async function (req, res) {
-  const username = req.username;
-  const updatedTsk = req.body;
+// Deletes todo based on id or index
+app.delete("/delete/:id", async function (req, res) {
+  let todos = req.todos;
+  const index = req.params.id;
+
+  todos.splice(index - 1, 1);
+  console.log(todos);
+
+  res.json({
+    msg: "done",
+  });
 });
 
-app.delete("/delete-todo", async function (req, res) {
-  const username = req.username;
+//Updates todo based on index
+app.put("/update-todos", async function (req, res) {
+  let todos = req.todos;
+  const id = req.query.id;
+  const updatedTodo = req.body.updatedTodo;
+
+  todos[id - 1] = updatedTodo;
+  console.log(todos);
+  res.json({
+    msg: "done",
+  });
 });
 
 app.listen(3000, () => {
-  console.log(`Server Live on port ${3000}`);
+  console.log(`Server is online on port ${3000} .....`);
 });
