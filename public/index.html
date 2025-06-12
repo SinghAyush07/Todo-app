@@ -31,28 +31,46 @@
         localStorage.setItem("token", response.data.token);
         alert("you are signed in");
       }
+
+      async function getTodos() {
+        const response = await axios.get("http://localhost:3000/todos", {
+          headers: {
+            token: localStorage.getItem("token"),
+          },
+        });
+        const todos = response.data.todos;
+        await showTodos(todos);
+      }
+
+      function showTodos(todos) {
+        let length = todos.length;
+        for (let i = 0; i < length; i++) {}
+      }
     </script>
   </head>
   <body>
     <header>Todo - Application</header>
     <main>
       <section>
-        <div>
+        <div class="signup">
           Signup
           <input type="text" placeholder="Username" id="signup-username" />
           <input type="password" placeholder="password" id="signup-password" />
           <button onclick="signup()">Signup</button>
         </div>
-        <div>
+        <div class="signin">
           Signin
           <input type="text" placeholder="Username" id="signin-username" />
           <input type="password" placeholder="password" id="signin-password" />
           <button onclick="signin()">Signin</button>
         </div>
+        <div>
+          <button onlick="signout()">SignOut</button>
+        </div>
       </section>
       <section>
         Todos
-        <div class="user-todos">
+        <div id="user-todos">
           <!-- todos - type="button" delete / completed and for updating 📝 button -->
         </div>
       </section>
